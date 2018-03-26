@@ -138,10 +138,10 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
-      <Version>6.0.7</Version>
+      <Version>6.0.8</Version>
     </PackageReference>
     <PackageReference Include="Telegram.Bot">
-      <Version>14.0.0-rc-367</Version>
+      <Version>14.2.0-rc-452</Version>
     </PackageReference>
   </ItemGroup>
   <ItemGroup>

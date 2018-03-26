@@ -13,6 +13,8 @@ namespace RadioIOT
 
         public string Key { get; private set; }
 
+        public string Owner { get; private set; }
+
         public static IAsyncOperation<InternetRadioConfig> GetDefault()
         {
             return Task.Run(async () =>
@@ -33,6 +35,7 @@ namespace RadioIOT
 
             Key = xml.Descendants("add").Single(x => x.Attribute(XName.Get("key")).Value == "key").Attribute(XName.Get("value")).Value;
             Delay = Convert.ToInt32(xml.Descendants("add").Single(x => x.Attribute(XName.Get("key")).Value == "delay").Attribute(XName.Get("value")).Value);
+            Owner = xml.Descendants("add").Single(x => x.Attribute(XName.Get("key")).Value == "owner").Attribute(XName.Get("value")).Value;
         }
     }
 }
