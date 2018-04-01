@@ -16,7 +16,7 @@ namespace RadioIOT
         private string currentUri;
         private const uint maxRetries = 3;
 
-        public IAsyncAction Initialize(InternetRadioConfig config, Bot bot, string current)
+        public IAsyncAction Initialize(InternetRadioConfig config, Bot bot)
         {
             _bot = bot;
             bot.RadioChangeRequest += RadioUriChanged;
@@ -45,9 +45,8 @@ namespace RadioIOT
                 _radioPowerManager.PowerState = PowerState.Powered;
 
                 var uriToPlay = LoadSettings("play");
-                if (uriToPlay == null)
-                    uriToPlay = current;
-                currentUri = uriToPlay;
+                if (uriToPlay != null)
+                    currentUri = uriToPlay;
             });
 
             return radioTask.AsAsyncAction();

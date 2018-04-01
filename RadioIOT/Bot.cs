@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
-using Windows.Foundation;
 
 namespace RadioIOT
 {
@@ -33,16 +33,16 @@ namespace RadioIOT
     public sealed class Bot
     {
         private readonly string _key;
-        private readonly IDictionary<string, string> _stations;
         private readonly string _owner;
+        private readonly string _link;
         private long _chatId;
         private TelegramBotClient _bot;
 
-        public Bot(string key, IDictionary<string, string> stations, string owner)
+        public Bot(string key, string owner, string link)
         {
             _key = key;
-            _stations = stations;
             _owner = owner;
+            _link = link;
         }
 
         public event RadioChangeRequestEventHandler RadioChangeRequest;
@@ -61,22 +61,6 @@ namespace RadioIOT
 
             var offset = 0;
 
-                
-            var buttons = new List<List<InlineKeyboardButton>>();
-            var middleArray = new List<InlineKeyboardButton>();
-            var i = 0;
-            foreach (var key in _stations.Keys)
-            {
-                if ( i % 3 == 0)
-                {
-                    middleArray = new List<InlineKeyboardButton>();
-                    buttons.Add(middleArray);
-                }
-                middleArray.Add(InlineKeyboardButton.WithCallbackData(key));
-                i++;
-            }
-            var stationButtons = new InlineKeyboardMarkup(buttons);
-
             while (true)
             {
                 foreach (var update in await _bot.GetUpdatesAsync(offset))
@@ -84,7 +68,7 @@ namespace RadioIOT
                     switch (update.Type)
                     {
                         case UpdateType.CallbackQuery:
-                            var link = _stations[update.CallbackQuery.Data];
+                            var link = update.CallbackQuery.Data;
                             if (Uri.TryCreate(link, UriKind.Absolute, out Uri result)) { 
                                 RadioChangeRequest(this, new RadioChangeRequestEventArgs() { Uri = link });
                                 await _bot.AnswerCallbackQueryAsync(update.CallbackQuery.Id, link);
@@ -113,6 +97,22 @@ namespace RadioIOT
                                         CommandRequest(this, new CommandRequestEventArgs { Command = BotCommand.Pause });
                                     else if (message.Text.StartsWith("/stations"))
                                     {
+                                        var buttons = new List<List<InlineKeyboardButton>>();
+                                        var middleArray = new List<InlineKeyboardButton>();
+                                        var i = 0;
+                                        var stations = await Download();
+                                        foreach (var key in stations.Keys)
+                                        {
+                                            if (i % 3 == 0)
+                                            {
+                                                middleArray = new List<InlineKeyboardButton>();
+                                                buttons.Add(middleArray);
+                                            }
+                                            middleArray.Add(InlineKeyboardButton.WithCallbackData(key, stations[key]));
+                                            i++;
+                                        }
+                                        var stationButtons = new InlineKeyboardMarkup(buttons);
+
                                         await _bot.SendTextMessageAsync(
                                             message.Chat.Id,
                                             "Stations:",
@@ -137,6 +137,24 @@ namespace RadioIOT
                     offset = update.Id + 1;
                 }
             }
+        }
+
+        private async Task<IDictionary<string, string>> Download()
+        {
+            var stations = new Dictionary<string, string>();
+            var client = new HttpClient();
+            HttpResponseMessage response = await client.GetAsync(new Uri(_link));
+            var str = await response.Content.ReadAsStringAsync();
+
+            var values = str.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            for (uint i = 0; i < values.Length; i++)
+            {
+                var v = values[i].Split('=', StringSplitOptions.RemoveEmptyEntries);
+                if (v.Length != 2) continue;
+                stations.Add(v[0], v[1]);
+            }
+
+            return stations;
         }
     }
 }
